@@ -768,6 +768,7 @@ function render(){
 }
 
 function renderExtra(){
+  if(!current.extra) current.extra = [];
   const wrap = document.getElementById('extraRows'); wrap.innerHTML='';
   current.extra.forEach((row,i)=>{
     const div=document.createElement('div'); div.className='extra-row';
@@ -914,6 +915,12 @@ function onMonthChange(){
 function loadMonth(ym){
   if(DB.months[ym]){
     current = JSON.parse(JSON.stringify(DB.months[ym]));
+    // Pastikan field wajib ada (data dari Firebase mungkin tidak lengkap)
+    if(!current.extra) current.extra = [];
+    if(!current.pos) current.pos = {};
+    if(!current.gold) current.gold = {};
+    RUPIAH_POS.forEach(p=>{ if(!current.pos[p.key]) current.pos[p.key]={carry:0,in:0,out:0,note:'',subs:[]}; if(!current.pos[p.key].subs) current.pos[p.key].subs=[]; });
+    GOLD_POS.forEach(p=>{ if(!current.gold[p.key]) current.gold[p.key]={carry:0,in:0,out:0}; });
     document.getElementById('carryNote').textContent = '↳ Membuka laporan tersimpan untuk '+monthLabel(ym)+'.';
   }else{
     current = emptyEntry(ym);

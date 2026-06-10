@@ -331,6 +331,34 @@
 
   .foot{text-align:center;color:var(--ink-soft);font-size:12.5px;font-style:italic;margin-top:24px}
 
+  /* ===== LOGIN SCREEN ===== */
+  #loginScreen{
+    position:fixed;inset:0;background:var(--paper);z-index:9999;
+    display:flex;align-items:center;justify-content:center;padding:24px;
+    background-image:radial-gradient(var(--dot) 0.5px, transparent 0.5px);
+    background-size:22px 22px;
+  }
+  #loginScreen.hide{display:none}
+  .login-card{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:20px;
+    padding:32px 28px;max-width:360px;width:100%;box-shadow:var(--shadow);text-align:center;
+  }
+  .login-card .lc-icon{font-size:36px;margin-bottom:6px}
+  .login-card h2{font-family:var(--font-display);font-size:24px;font-weight:600;margin-bottom:4px}
+  .login-card p{font-size:13.5px;color:var(--ink-soft);font-style:italic;margin-bottom:22px}
+  .login-card input[type=password]{
+    width:100%;font-family:var(--font-body);font-size:16px;padding:12px 14px;
+    border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);
+    outline:none;text-align:center;letter-spacing:.1em;margin-bottom:14px;
+  }
+  .login-card input[type=password]:focus{border-color:var(--line-strong)}
+  .login-card .remember{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:18px;font-size:14px;color:var(--ink-soft);cursor:pointer}
+  .login-card .remember input{width:16px;height:16px;cursor:pointer;accent-color:var(--accent)}
+  .login-card .lc-btn{
+    width:100%;font-family:var(--font-body);font-size:16px;padding:13px;
+    background:var(--accent);color:#f4efe2;border:none;border-radius:12px;cursor:pointer;font-weight:500;
+  }
+  .login-card .lc-btn:hover{opacity:.9}
   @media(max-width:560px){
     .flow input{width:80px}
     .extra-row{grid-template-columns:1fr 110px 34px}
@@ -339,7 +367,24 @@
 <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22Dana%20Rumah%22%2C%20%22short_name%22%3A%20%22Dana%20Rumah%22%2C%20%22start_url%22%3A%20%22.%22%2C%20%22scope%22%3A%20%22.%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22background_color%22%3A%20%22%23f7f3ea%22%2C%20%22theme_color%22%3A%20%22%2336544a%22%2C%20%22icons%22%3A%20%5B%7B%22src%22%3A%20%22data%3Aimage/svg%2Bxml%2C%253Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20180%20180%27%253E%253Crect%20width%3D%27180%27%20height%3D%27180%27%20rx%3D%2740%27%20fill%3D%27%252336544a%27/%253E%253Ctext%20x%3D%2790%27%20y%3D%27118%27%20font-family%3D%27Georgia%2Cserif%27%20font-size%3D%2796%27%20font-weight%3D%27700%27%20fill%3D%27%2523f4efe2%27%20text-anchor%3D%27middle%27%253ED%253C/text%253E%253Ccircle%20cx%3D%27128%27%20cy%3D%2758%27%20r%3D%2713%27%20fill%3D%27%2523d8b463%27/%253E%253C/svg%253E%22%2C%20%22sizes%22%3A%20%22180x180%22%2C%20%22type%22%3A%20%22image/svg%2Bxml%22%2C%20%22purpose%22%3A%20%22any%20maskable%22%7D%5D%7D">
 </head>
 <body>
-<div class="wrap">
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="lc-icon">🏠</div>
+    <h2>Dana Rumah</h2>
+    <p>Rulan &amp; Conny — masukkan kata sandi</p>
+    <input type="password" id="pwInput" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()">
+    <label class="remember">
+      <input type="checkbox" id="rememberMe" checked>
+      <span>Ingat saya selama 6 bulan</span>
+    </label>
+    <button class="lc-btn" onclick="doLogin()">Masuk</button>
+    <div class="lc-err" id="loginErr"></div>
+  </div>
+</div>
+
+
   <header class="app">
     <button class="theme-toggle" onclick="toggleThemePanel()" title="Tampilan" aria-label="Pengaturan tampilan">✦</button>
     <div class="kicker">— catatan keuangan keluarga —</div>
@@ -595,6 +640,43 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Login Logic -->
+<script>
+const APP_PASSWORD = 'rulanconny'; // ganti password di sini
+const AUTH_KEY = 'dana_auth_v1';
+const SIX_MONTHS = 6 * 30 * 24 * 60 * 60 * 1000;
+
+function checkAuth(){
+  try{
+    const a = JSON.parse(localStorage.getItem(AUTH_KEY)||'{}');
+    if(a.token === APP_PASSWORD && a.exp && Date.now() < a.exp){
+      document.getElementById('loginScreen').classList.add('hide');
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
+function doLogin(){
+  const pw = document.getElementById('pwInput').value;
+  const err = document.getElementById('loginErr');
+  if(pw === APP_PASSWORD){
+    const remember = document.getElementById('rememberMe').checked;
+    const exp = remember ? Date.now() + SIX_MONTHS : Date.now() + 3*60*60*1000; // 6 bulan atau 3 jam
+    localStorage.setItem(AUTH_KEY, JSON.stringify({token: APP_PASSWORD, exp}));
+    document.getElementById('loginScreen').classList.add('hide');
+    err.textContent = '';
+  } else {
+    err.textContent = 'Kata sandi salah, coba lagi.';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+  }
+}
+
+// Cek auth saat halaman dibuka
+checkAuth();
+</script>
 
 <!-- Firebase SDK -->
 <script type="module">
